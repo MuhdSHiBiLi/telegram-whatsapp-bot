@@ -74,7 +74,7 @@ bot.on('message', (msg) => {
         bot.sendMessage(chatId, `Here’s your WhatsApp link: ${link}`);
         setTimeout(() => {
             bot.sendMessage(chatId, 'Please use /start comment for another link making');
-        }, 1500);
+        }, 9000);
         delete userSessions[chatId]; // Clear the session after creating the link
     }
 });
