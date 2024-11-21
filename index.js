@@ -72,6 +72,9 @@ bot.on('message', (msg) => {
         const link = `https://wa.me/${number}?text=${message}`;
 
         bot.sendMessage(chatId, `Here’s your WhatsApp link: ${link}`);
+        setTimeout(() => {
+            bot.sendMessage(chatId, 'Please use /start comment for another link making');
+        }, 1500);
         delete userSessions[chatId]; // Clear the session after creating the link
     }
 });
@@ -83,6 +86,7 @@ bot.on('polling_error', (error) => {
 
 //dumy http server for render
 const http = require('http');
+const { setTimeout } = require('timers');
 
 const PORT = process.env.PORT || 3000; // Use Render's dynamically assigned port
 http.createServer((req, res) => {
