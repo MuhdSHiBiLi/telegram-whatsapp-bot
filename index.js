@@ -80,3 +80,14 @@ bot.on('message', (msg) => {
 bot.on('polling_error', (error) => {
     console.error('Polling error:', error.code, error.response ? error.response.body : error.message);
 });
+
+//dumy http server for render
+const http = require('http');
+
+const PORT = process.env.PORT || 3000; // Use Render's dynamically assigned port
+http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Bot is running.');
+}).listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
