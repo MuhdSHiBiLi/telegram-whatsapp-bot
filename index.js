@@ -97,7 +97,7 @@ bot.on('message', async (msg) => {
             }
         };
 
-        bot.sendMessage(chatId, 'Here are your options:', options);
+        bot.sendMessage(chatId, 'Here are your options for the link', options);
         delete userSessions[chatId]; // Clear the session after creating the link
     }
 });
