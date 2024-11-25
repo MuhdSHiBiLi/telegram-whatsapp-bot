@@ -1,12 +1,11 @@
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
-// Replace with your BotFather token
 const token = process.env.BOT_TOKEN;
-
 const bot = new TelegramBot(token, { polling: true });
 
 const userSessions = {}; // To track user inputs
+const linkStore = {}; // To store links for buttons
 
 console.log('Bot is running...');
 
@@ -28,6 +27,11 @@ function fullyEncodeText(text) {
 // Utility function for minimal encoding using encodeURIComponent
 function minimallyEncodeText(text) {
     return encodeURIComponent(text); // Automatically encodes spaces as %20 and other special characters
+}
+
+// Generate a unique ID for storing data
+function generateUniqueId() {
+    return Math.random().toString(36).substring(2, 15); // Random alphanumeric string
 }
 
 // Start command to initiate the bot
@@ -75,13 +79,19 @@ bot.on('message', async (msg) => {
         const fullLink = `https://wa.me/${number}?text=${fullEncodedMessage}`;
         const shortLink = `https://wa.me/${number}?text=${minimalEncodedMessage}`;
 
-        // Inline keyboard with buttons
+        // Store links in the linkStore
+        const fullLinkId = generateUniqueId();
+        const shortLinkId = generateUniqueId();
+        linkStore[fullLinkId] = fullLink;
+        linkStore[shortLinkId] = shortLink;
+
+        // Inline keyboard with buttons (using unique IDs)
         const options = {
             reply_markup: {
                 inline_keyboard: [
                     [
-                        { text: 'Copy Fully Encoded Link', callback_data: `copy|${fullLink}` },
-                        { text: 'Copy Minimal Encoded Link', callback_data: `copy|${shortLink}` }
+                        { text: 'Fully Encoded Link', callback_data: `link|${fullLinkId}` },
+                        { text: 'Minimal Encoded Link', callback_data: `link|${shortLinkId}` }
                     ]
                 ]
             }
@@ -97,12 +107,19 @@ bot.on('callback_query', (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
 
-    if (data.startsWith('copy|')) {
-        const link = data.split('|')[1];
-        bot.answerCallbackQuery(query.id, { text: 'Link ready to use!' });
-        bot.sendMessage(chatId, `Copy this link: ${link}`, {
-            reply_markup: { remove_keyboard: true }
-        });
+    if (data.startsWith('link|')) {
+        const linkId = data.split('|')[1];
+        const link = linkStore[linkId]; // Retrieve the link using the ID
+
+        if (link) {
+            bot.answerCallbackQuery(query.id, { text: 'Here is your link!' });
+            bot.sendMessage(chatId, link); // Send the link as a message to the user
+
+            // Optionally delete the link from the store to save memory
+            delete linkStore[linkId];
+        } else {
+            bot.answerCallbackQuery(query.id, { text: 'Invalid link or expired.' });
+        }
     }
 });
 
