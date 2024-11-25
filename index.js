@@ -1,8 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
-
-// Replace with your BotFather tokeconst token = process.env.BOT_TOKEN;
+// Replace with your BotFather token
 const token = process.env.BOT_TOKEN;
 
 const bot = new TelegramBot(token, { polling: true });
@@ -11,7 +10,7 @@ const userSessions = {}; // To track user inputs
 
 console.log('Bot is running...');
 
-// Utility function to fully encode text
+// Utility function for fully encoded text (UTF-8)
 function fullyEncodeText(text) {
     return Array.from(text)
         .map(char => {
@@ -26,8 +25,10 @@ function fullyEncodeText(text) {
         .join('');
 }
 
-
-
+// Utility function for minimal encoding using encodeURIComponent
+function minimallyEncodeText(text) {
+    return encodeURIComponent(text); // Automatically encodes spaces as %20 and other special characters
+}
 
 // Start command to initiate the bot
 bot.onText(/\/start/, (msg) => {
@@ -37,7 +38,7 @@ bot.onText(/\/start/, (msg) => {
 });
 
 // Message handler for user input
-bot.on('message', (msg) => {
+bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
 
     // If no session exists, ask the user to start with /start
@@ -66,16 +67,42 @@ bot.on('message', (msg) => {
     // Step 2: Collect message and generate WhatsApp link
     else if (userState.step === 'message') {
         const rawMessage = msg.text.trim();
-        console.log(`USER ENTERD MESSAGE IS :--\n ${rawMessage}`);
-        const message = fullyEncodeText(rawMessage); // Fully encode the message
+        console.log(`User entered message: ${rawMessage}`);
+        const fullEncodedMessage = fullyEncodeText(rawMessage); // Fully encode the message
+        const minimalEncodedMessage = minimallyEncodeText(rawMessage); // Use encodeURIComponent for minimal encoding
         const number = userState.number;
-        const link = `https://wa.me/${number}?text=${message}`;
 
-        bot.sendMessage(chatId, `Here’s your WhatsApp link: ${link}`);
-        setTimeout(() => {
-            bot.sendMessage(chatId, 'Please use /start comment for another link making');
-        }, 9000);
+        const fullLink = `https://wa.me/${number}?text=${fullEncodedMessage}`;
+        const shortLink = `https://wa.me/${number}?text=${minimalEncodedMessage}`;
+
+        // Inline keyboard with buttons
+        const options = {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: 'Copy Fully Encoded Link', callback_data: `copy|${fullLink}` },
+                        { text: 'Copy Minimal Encoded Link', callback_data: `copy|${shortLink}` }
+                    ]
+                ]
+            }
+        };
+
+        bot.sendMessage(chatId, 'Here are your options:', options);
         delete userSessions[chatId]; // Clear the session after creating the link
+    }
+});
+
+// Handle button presses
+bot.on('callback_query', (query) => {
+    const chatId = query.message.chat.id;
+    const data = query.data;
+
+    if (data.startsWith('copy|')) {
+        const link = data.split('|')[1];
+        bot.answerCallbackQuery(query.id, { text: 'Link ready to use!' });
+        bot.sendMessage(chatId, `Copy this link: ${link}`, {
+            reply_markup: { remove_keyboard: true }
+        });
     }
 });
 
@@ -84,10 +111,8 @@ bot.on('polling_error', (error) => {
     console.error('Polling error:', error.code, error.response ? error.response.body : error.message);
 });
 
-//dumy http server for render
+// Dummy HTTP server for Render
 const http = require('http');
-const { setTimeout } = require('timers');
-
 const PORT = process.env.PORT || 3000; // Use Render's dynamically assigned port
 http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
